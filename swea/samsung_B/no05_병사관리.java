@@ -6,46 +6,87 @@ import java.util.*;
 import java.util.StringTokenizer;
 
 
-    class UserSolution //(4고유번호, 1그룹, 1점수)
+    class UserSolution
     {
-        HashMap<List<Integer>, LinkedList<int[]>> linkedBoard; // 점수 관리 보드
-        int[] version;//제거 여부 및 버전 관리 배열
-        int[] teamInfo;
+        public class Node{
+            int id;
+            int v;
+            Node nxt;
+
+            Node(int id, int v, Node nxt){
+                this.id = id;
+                this.v = v;
+                this.nxt = nxt;
+            }
+
+            Node(int id, int v){
+                this.id = id;
+                this.v = v;
+                this.nxt = null;
+            }
+
+            Node(){}
+        }// 점수 관리 링크드 리스트에 쓰일 노드
+
+        public Node[] node = new Node[200001];
+        public int[] version =new int[100001];;//제거 여부 및 버전 관리 배열
+        public int[] teamInfo = new int[100001];
+        public int cnt = 0;
+
+        public Node pushAndGet(int id, Node nxt){
+            Node ret = node[cnt++];
+            ret.id = id;
+            ret.nxt = nxt;
+            ret.v = ++version[id];
+            return ret;
+
+        }
+
+        public class Team {
+            Node[] head = new Node[6];
+            Node[] tail = new Node[6];
+        }
+
+        Team[] t = new Team[6];
         public void init()
         {
-            linkedBoard = new HashMap<>(5*10);
-            for(int i=1 ; i <= 5 ; i++) {
-                for (int j = 1; j <= 10; j++) {
-                    linkedBoard.put(Arrays.asList(i,j), new LinkedList<>());
+            cnt = 0;
+            for(int i=0 ; i < 200001 ; i++){
+                if(node[i] == null) node[i]= new Node();
+            }
+            for(int i=0 ; i <= 5 ; i++){
+                t[i] = new Team();
+                for(int j=0 ; j < 6 ; j++){
+                    t[i].tail[j] = t[i].head[j] = pushAndGet(0,null);
                 }
             }
 
-            version = new int[100001];
-            teamInfo = new int[100001];
+            for(int i=0 ; i <100001 ; i++){
+                version[i] = 0;
+                teamInfo[i] = 0;
+            }
         }
         //	병사 고용
         public void hire(int mID, int mTeam, int mScore)
         {
-            int v = version[mID];
-            linkedBoard.getOrDefault(Arrays.asList(mTeam,mScore), new LinkedList<>()).add(new int[]{mID, v});
-            version[mID]++;
+            Node node = pushAndGet(mID, null);
+            t[mTeam].tail[mScore].nxt = node;
+            t[mTeam].tail[mScore] = node;
             teamInfo[mID] = mTeam;
+            //0
         }
 
         //	병사 해고
         public void fire(int mID)
         {
-            version[mID]++;
-            teamInfo[mID] = -1;
+
+            version[mID] = -1;
         }
 
         // 병사의 평판 점수 변경
         public void updateSoldier(int mID, int mScore)
         {
-
-            int t = teamInfo[mID];
-            linkedBoard.getOrDefault(Arrays.asList(t, mScore),new LinkedList<>()).add(new int[]{mID, version[mID]});
-            version[mID]++;
+            hire(mID, teamInfo[mID] ,mScore);
         }
 
         //특정 팀에 속한 병사들의 평판 점수를 일괄 변경
@@ -56,44 +97,45 @@ import java.util.StringTokenizer;
                     k = k < 1 ? 1 : (k > 5 ? 5 : k);
                     if (j == k) continue;
 
-                    LinkedList<int[]> ee = linkedBoard.getOrDefault(Arrays.asList(mTeam, j), null);
-                    if (ee == null) continue;
-                    linkedBoard.get(Arrays.asList(mTeam, k)).addAll(ee);
-                    linkedBoard.get(Arrays.asList(mTeam, j)).removeAll(ee);
+                    if(t[mTeam].head[j].nxt == null) continue;
+                    t[mTeam].tail[k].nxt=t[mTeam].head[j].nxt;
+                    t[mTeam].tail[k] = t[mTeam].tail[j];
+                    t[mTeam].head[j].nxt = null;
+//                    System.out.println(t[mTeam].head[j]);
+                    t[mTeam].tail[j] = t[mTeam].head[j];
                 }
             }
             if (mChangeScore > 0) {
                 for (int j = 5; j >= 1; j--) {
-                    int k = j + mChangeScore;
-                    k = k < 1 ? 1 : (k > 5 ? 5 : k);
+                    int k = j + mChangeScore; // j : 업데이트 전 점수
+                    k = k < 1 ? 1 : (k > 5 ? 5 : k); //k : 업데이트 후 점수
                     if (j == k) continue;
 
-                    LinkedList<int[]> ee = linkedBoard.getOrDefault(Arrays.asList(mTeam, j), null);
-                    if (ee == null) continue;
-                    linkedBoard.get(Arrays.asList(mTeam, k)).addAll(ee);
-                    linkedBoard.get(Arrays.asList(mTeam, j)).removeAll(ee);
-                }
+                    if(t[mTeam].head[j].nxt == null) continue;
+                    t[mTeam].tail[k].nxt=t[mTeam].head[j].nxt;
+                    t[mTeam].tail[k] = t[mTeam].tail[j];
+                    t[mTeam].head[j].nxt = null;
+//                    System.out.println(t[mTeam].head[j]);
+                    t[mTeam].tail[j] = t[mTeam].head[j];
+                 }
             }
         }
         // 특정 팀 안에서 가장 평판 점수가 높은 병사를 검색
         public int bestSoldier(int mTeam) {
-            int maxId = 0;
-            int maxScore = 0;
-            for (int i = 0; i <=9; i++) {
-                LinkedList<int[]> ids = linkedBoard.getOrDefault(Arrays.asList(mTeam, i), null);
-                if(ids == null) continue;
-                for (int[] each : ids) {
-                    if (version[each[0]]-1 == each[1]) {
-                        if(maxScore < i){
-                            maxId =  each[0];
-                            maxScore = i;
-                        }else if(maxScore == i){
-                            maxId = Math.max(maxId, each[0]);
-                        }
+            for(int j=5 ; j>=1 ; j--){
+                Node node = t[mTeam].head[j].nxt;
+                if(node == null) continue;
+
+                int ans  = 0;
+                while (node != null) {
+                    if (node.v == version[node.id]) {
+                        ans = ans < node.id ? node.id : ans;
                     }
+                    node = node.nxt;
                 }
-            }//1. 점수가장 큰 순서 2.고유번호 큰 순서
-            return maxId;
+                if (ans != 0) return ans;
+            }
+            return 0;
         }
 }
 
