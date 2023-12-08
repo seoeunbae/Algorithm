@@ -33,6 +33,15 @@ import java.util.StringTokenizer;
         public int[] teamInfo = new int[100001];
         public int cnt = 0;
 
+
+
+        public class Team {
+            Node[] head = new Node[6];
+            Node[] tail = new Node[6];
+        }
+
+        Team[] t = new Team[6];
+
         public Node pushAndGet(int id, Node nxt){
             Node ret = node[cnt++];
             ret.id = id;
@@ -41,13 +50,6 @@ import java.util.StringTokenizer;
             return ret;
 
         }
-
-        public class Team {
-            Node[] head = new Node[6];
-            Node[] tail = new Node[6];
-        }
-
-        Team[] t = new Team[6];
         public void init()
         {
             cnt = 0;
@@ -101,7 +103,6 @@ import java.util.StringTokenizer;
                     t[mTeam].tail[k].nxt=t[mTeam].head[j].nxt;
                     t[mTeam].tail[k] = t[mTeam].tail[j];
                     t[mTeam].head[j].nxt = null;
-//                    System.out.println(t[mTeam].head[j]);
                     t[mTeam].tail[j] = t[mTeam].head[j];
                 }
             }
